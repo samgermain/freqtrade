@@ -1593,7 +1593,9 @@ class Exchange:
             :return: (open_interest, rollover_interest)
         """
         try:
-            # TODO-lev: implement, currently there is no ccxt method for this
+            # TODO-lev: implement, currently there is no ccxt method for this Ref:
+            #  https://github.com/ccxt/ccxt/issues/7000 and
+            #  https://github.com/ccxt/ccxt/blob/master/examples/py/async-okex-fetch-margin-balance-with-options.py
             return (0.0005, 0.0005)
         except ccxt.DDoSProtection as e:
             raise DDosProtection(e) from e
@@ -1609,6 +1611,7 @@ class Exchange:
             #TODO-lev: Should maybe be renamed, leverage_brackets might not be accurate for kraken
             Assigns property _leverage_brackets to a dictionary of information about the leverage
             allowed on each pair
+            # https://github.com/ccxt/ccxt/issues/4834
         """
         raise OperationalException(
             f"{self.name.capitalize()}.fill_leverage_brackets has not been implemented.")
