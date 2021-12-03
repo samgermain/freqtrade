@@ -196,7 +196,7 @@ class Exchange:
             'uid': exchange_config.get('uid', ''),
         }
         if ccxt_kwargs:
-            logger.info('Applying additional ccxt config: %s', ccxt_kwargs)
+            logger.info('Applying additional ccxt config params: %s', ccxt_kwargs.keys())
         if self._headers:
             # Inject static headers after the above output to not confuse users.
             ccxt_kwargs = deep_merge_dicts({'headers': self._headers}, ccxt_kwargs)
@@ -374,7 +374,7 @@ class Exchange:
             raise OperationalException(
                 'Could not load markets, therefore cannot start. '
                 'Please investigate the above error for more details.'
-                )
+            )
         quote_currencies = self.get_quote_currencies()
         if stake_currency not in quote_currencies:
             raise OperationalException(
