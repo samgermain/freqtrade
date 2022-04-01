@@ -14,7 +14,7 @@ pip install -U -r requirements-plot.txt
 
 The `freqtrade plot-dataframe` subcommand shows an interactive graph with three subplots:
 
-* Main plot with candlestics and indicators following price (sma/ema)
+* Main plot with candlesticks and indicators following price (sma/ema)
 * Volume bars
 * Additional indicators as specified by `--indicators2`
 
@@ -65,7 +65,7 @@ optional arguments:
                         _today.json`
   --timerange TIMERANGE
                         Specify what timerange of data to use.
-  -i TIMEFRAME, --timeframe TIMEFRAME, --ticker-interval TIMEFRAME
+  -i TIMEFRAME, --timeframe TIMEFRAME
                         Specify timeframe (`1m`, `5m`, `30m`, `1h`, `1d`).
   --no-trades           Skip using trades from backtesting file and DB.
 
@@ -273,6 +273,13 @@ def plot_config(self):
 !!! Warning
     `plotly` arguments are only supported with plotly library and will not work with freq-ui.
 
+!!! Note "Trade position adjustments"
+    If `position_adjustment_enable` / `adjust_trade_position()` is used, the trade initial buy price is averaged over multiple orders and the trade start price will most likely appear outside the candle range.
+
+!!! Note "Futures / Margin trading"
+    `plot-dataframe` does not support Futures / short trades, so these trades will simply be missing, and it's unlikely we'll be adding this functionality to this command.
+    Please use freqUI instead by starting freqtrade in [webserver mode](utils.md#webserver-mode) and use the Chart page to plot your dataframe.
+
 ## Plot profit
 
 ![plot-profit](assets/plot-profit.png)
@@ -315,8 +322,8 @@ optional arguments:
                         Specify what timerange of data to use.
   --export EXPORT       Export backtest results, argument are: trades.
                         Example: `--export=trades`
-  --export-filename PATH
-                        Save backtest results to the file with this filename.
+  --export-filename PATH, --backtest-filename PATH
+                        Use backtest results from this filename.
                         Requires `--export` to be set as well. Example:
                         `--export-filename=user_data/backtest_results/backtest
                         _today.json`
@@ -327,7 +334,7 @@ optional arguments:
   --trade-source {DB,file}
                         Specify the source for trades (Can be DB or file
                         (backtest file)) Default: file
-  -i TIMEFRAME, --timeframe TIMEFRAME, --ticker-interval TIMEFRAME
+  -i TIMEFRAME, --timeframe TIMEFRAME
                         Specify timeframe (`1m`, `5m`, `30m`, `1h`, `1d`).
   --auto-open           Automatically open generated plot.
 

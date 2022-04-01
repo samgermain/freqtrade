@@ -8,6 +8,7 @@
     "amend_last_stake_amount": false,
     "last_stake_amount_min_ratio": 0.5,
     "dry_run": true,
+    "dry_run_wallet": 1000,
     "cancel_open_orders_on_exit": false,
     "timeframe": "5m",
     "trailing_stop": false,
@@ -18,6 +19,9 @@
     "sell_profit_only": false,
     "sell_profit_offset": 0.0,
     "ignore_roi_if_buy_signal": false,
+    "ignore_buying_expired_candle_after": 300,
+    "trading_mode": "spot",
+    "margin_mode": "",
     "minimal_roi": {
         "40":  0.0,
         "30":  0.01,
@@ -26,39 +30,41 @@
     },
     "stoploss": -0.10,
     "unfilledtimeout": {
-        "buy": 10,
-        "sell": 30,
+        "entry": 10,
+        "exit": 10,
         "exit_timeout_count": 0,
         "unit": "minutes"
     },
-    "bid_strategy": {
-        "price_side": "bid",
+    "entry_pricing": {
+        "price_side": "same",
         "use_order_book": true,
-        "ask_last_balance": 0.0,
         "order_book_top": 1,
+        "price_last_balance": 0.0,
         "check_depth_of_market": {
             "enabled": false,
             "bids_to_ask_delta": 1
         }
     },
-    "ask_strategy":{
-        "price_side": "ask",
+    "exit_pricing":{
+        "price_side": "same",
         "use_order_book": true,
-        "order_book_top": 1
+        "order_book_top": 1,
+        "price_last_balance": 0.0
     },
     "order_types": {
-        "buy": "limit",
-        "sell": "limit",
-        "emergencysell": "market",
-        "forcesell": "market",
-        "forcebuy": "market",
+        "entry": "limit",
+        "exit": "limit",
+        "emergencyexit": "market",
+        "forceexit": "market",
+        "forceentry": "market",
         "stoploss": "market",
         "stoploss_on_exchange": false,
-        "stoploss_on_exchange_interval": 60
+        "stoploss_on_exchange_interval": 60,
+        "stoploss_on_exchange_limit_ratio": 0.99
     },
     "order_time_in_force": {
-        "buy": "gtc",
-        "sell": "gtc"
+        "entry": "gtc",
+        "exit": "gtc"
     },
     "pairlists": [
         {"method": "StaticPairList"},
@@ -85,6 +91,7 @@
         "key": "your_exchange_key",
         "secret": "your_exchange_secret",
         "password": "",
+        "log_responses": false,
         "ccxt_config": {},
         "ccxt_async_config": {},
         "pair_whitelist": [

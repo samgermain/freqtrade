@@ -5,6 +5,8 @@ bot constants
 """
 from typing import List, Tuple
 
+from freqtrade.enums import CandleType
+
 
 DEFAULT_CONFIG = 'config.json'
 DEFAULT_EXCHANGE = 'bittrex'
@@ -17,16 +19,16 @@ DEFAULT_DB_PROD_URL = 'sqlite:///tradesv3.sqlite'
 DEFAULT_DB_DRYRUN_URL = 'sqlite:///tradesv3.dryrun.sqlite'
 UNLIMITED_STAKE_AMOUNT = 'unlimited'
 DEFAULT_AMOUNT_RESERVE_PERCENT = 0.05
-REQUIRED_ORDERTIF = ['buy', 'sell']
-REQUIRED_ORDERTYPES = ['buy', 'sell', 'stoploss', 'stoploss_on_exchange']
-ORDERBOOK_SIDES = ['ask', 'bid']
+REQUIRED_ORDERTIF = ['entry', 'exit']
+REQUIRED_ORDERTYPES = ['entry', 'exit', 'stoploss', 'stoploss_on_exchange']
+PRICING_SIDES = ['ask', 'bid', 'same', 'other']
 ORDERTYPE_POSSIBILITIES = ['limit', 'market']
 ORDERTIF_POSSIBILITIES = ['gtc', 'fok', 'ioc']
 HYPEROPT_LOSS_BUILTIN = ['ShortTradeDurHyperOptLoss', 'OnlyProfitHyperOptLoss',
                          'SharpeHyperOptLoss', 'SharpeHyperOptLossDaily',
                          'SortinoHyperOptLoss', 'SortinoHyperOptLossDaily',
                          'CalmarHyperOptLoss',
-                         'MaxDrawDownHyperOptLoss']
+                         'MaxDrawDownHyperOptLoss', 'ProfitDrawDownHyperOptLoss']
 AVAILABLE_PAIRLISTS = ['StaticPairList', 'VolumePairList',
                        'AgeFilter', 'OffsetFilter', 'PerformanceFilter',
                        'PrecisionFilter', 'PriceFilter', 'RangeStabilityFilter',
@@ -34,6 +36,8 @@ AVAILABLE_PAIRLISTS = ['StaticPairList', 'VolumePairList',
 AVAILABLE_PROTECTIONS = ['CooldownPeriod', 'LowProfitPairs', 'MaxDrawdown', 'StoplossGuard']
 AVAILABLE_DATAHANDLERS = ['json', 'jsongz', 'hdf5']
 BACKTEST_BREAKDOWNS = ['day', 'week', 'month']
+BACKTEST_CACHE_AGE = ['none', 'day', 'week', 'month']
+BACKTEST_CACHE_DEFAULT = 'day'
 DRY_RUN_WALLET = 1000
 DATETIME_PRINT_FORMAT = '%Y-%m-%d %H:%M:%S'
 MATH_CLOSE_PREC = 1e-14  # Precision used for float comparisons
@@ -41,6 +45,8 @@ DEFAULT_DATAFRAME_COLUMNS = ['date', 'open', 'high', 'low', 'close', 'volume']
 # Don't modify sequence of DEFAULT_TRADES_COLUMNS
 # it has wide consequences for stored trades files
 DEFAULT_TRADES_COLUMNS = ['timestamp', 'id', 'type', 'side', 'price', 'amount', 'cost']
+TRADING_MODES = ['spot', 'margin', 'futures']
+MARGIN_MODES = ['cross', 'isolated', '']
 
 LAST_BT_RESULT_FN = '.last_result.json'
 FTHYPT_FILEVERSION = 'fthypt_fileversion'
@@ -138,7 +144,7 @@ CONF_SCHEMA = {
             'minProperties': 1
         },
         'amount_reserve_percent': {'type': 'number', 'minimum': 0.0, 'maximum': 0.5},
-        'stoploss': {'type': 'number', 'maximum': 0, 'exclusiveMaximum': True},
+        'stoploss': {'type': 'number', 'maximum': 0, 'exclusiveMaximum': True, 'minimum': -1},
         'trailing_stop': {'type': 'boolean'},
         'trailing_stop_positive': {'type': 'number', 'minimum': 0, 'maximum': 1},
         'trailing_stop_positive_offset': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -148,6 +154,9 @@ CONF_SCHEMA = {
         'sell_profit_offset': {'type': 'number'},
         'ignore_roi_if_buy_signal': {'type': 'boolean'},
         'ignore_buying_expired_candle_after': {'type': 'number'},
+        'trading_mode': {'type': 'string', 'enum': TRADING_MODES},
+        'margin_mode': {'type': 'string', 'enum': MARGIN_MODES},
+        'liquidation_buffer': {'type': 'number', 'minimum': 0.0, 'maximum': 0.99},
         'backtest_breakdown': {
             'type': 'array',
             'items': {'type': 'string', 'enum': BACKTEST_BREAKDOWNS}
@@ -156,22 +165,22 @@ CONF_SCHEMA = {
         'unfilledtimeout': {
             'type': 'object',
             'properties': {
-                'buy': {'type': 'number', 'minimum': 1},
-                'sell': {'type': 'number', 'minimum': 1},
+                'entry': {'type': 'number', 'minimum': 1},
+                'exit': {'type': 'number', 'minimum': 1},
                 'exit_timeout_count': {'type': 'number', 'minimum': 0, 'default': 0},
                 'unit': {'type': 'string', 'enum': TIMEOUT_UNITS, 'default': 'minutes'}
             }
         },
-        'bid_strategy': {
+        'entry_pricing': {
             'type': 'object',
             'properties': {
-                'ask_last_balance': {
+                'price_last_balance': {
                     'type': 'number',
                     'minimum': 0,
                     'maximum': 1,
                     'exclusiveMaximum': False,
                 },
-                'price_side': {'type': 'string', 'enum': ORDERBOOK_SIDES, 'default': 'bid'},
+                'price_side': {'type': 'string', 'enum': PRICING_SIDES, 'default': 'same'},
                 'use_order_book': {'type': 'boolean'},
                 'order_book_top': {'type': 'integer', 'minimum': 1, 'maximum': 50, },
                 'check_depth_of_market': {
@@ -184,11 +193,11 @@ CONF_SCHEMA = {
             },
             'required': ['price_side']
         },
-        'ask_strategy': {
+        'exit_pricing': {
             'type': 'object',
             'properties': {
-                'price_side': {'type': 'string', 'enum': ORDERBOOK_SIDES, 'default': 'ask'},
-                'bid_last_balance': {
+                'price_side': {'type': 'string', 'enum': PRICING_SIDES, 'default': 'same'},
+                'price_last_balance': {
                     'type': 'number',
                     'minimum': 0,
                     'maximum': 1,
@@ -205,11 +214,11 @@ CONF_SCHEMA = {
         'order_types': {
             'type': 'object',
             'properties': {
-                'buy': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
-                'sell': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
-                'forcesell': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
-                'forcebuy': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
-                'emergencysell': {
+                'entry': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
+                'exit': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
+                'forceexit': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
+                'forceentry': {'type': 'string', 'enum': ORDERTYPE_POSSIBILITIES},
+                'emergencyexit': {
                     'type': 'string',
                     'enum': ORDERTYPE_POSSIBILITIES,
                     'default': 'market'},
@@ -219,15 +228,15 @@ CONF_SCHEMA = {
                 'stoploss_on_exchange_limit_ratio': {'type': 'number', 'minimum': 0.0,
                                                      'maximum': 1.0}
             },
-            'required': ['buy', 'sell', 'stoploss', 'stoploss_on_exchange']
+            'required': ['entry', 'exit', 'stoploss', 'stoploss_on_exchange']
         },
         'order_time_in_force': {
             'type': 'object',
             'properties': {
-                'buy': {'type': 'string', 'enum': ORDERTIF_POSSIBILITIES},
-                'sell': {'type': 'string', 'enum': ORDERTIF_POSSIBILITIES}
+                'entry': {'type': 'string', 'enum': ORDERTIF_POSSIBILITIES},
+                'exit': {'type': 'string', 'enum': ORDERTIF_POSSIBILITIES}
             },
-            'required': ['buy', 'sell']
+            'required': REQUIRED_ORDERTIF
         },
         'exchange': {'$ref': '#/definitions/exchange'},
         'edge': {'$ref': '#/definitions/edge'},
@@ -369,7 +378,9 @@ CONF_SCHEMA = {
             'type': 'string',
             'enum': AVAILABLE_DATAHANDLERS,
             'default': 'jsongz'
-        }
+        },
+        'position_adjustment_enable': {'type': 'boolean'},
+        'max_entry_position_adjustment': {'type': ['integer', 'number'], 'minimum': -1},
     },
     'definitions': {
         'exchange': {
@@ -434,9 +445,8 @@ SCHEMA_TRADE_REQUIRED = [
     'last_stake_amount_min_ratio',
     'dry_run',
     'dry_run_wallet',
-    'ask_strategy',
-    'bid_strategy',
-    'unfilledtimeout',
+    'exit_pricing',
+    'entry_pricing',
     'stoploss',
     'minimal_roi',
     'internals',
@@ -472,7 +482,7 @@ CANCEL_REASON = {
 }
 
 # List of pairs with their timeframes
-PairWithTimeframe = Tuple[str, str]
+PairWithTimeframe = Tuple[str, str, CandleType]
 ListPairsWithTimeframes = List[PairWithTimeframe]
 
 # Type for trades list

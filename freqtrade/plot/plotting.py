@@ -61,8 +61,8 @@ def init_plotscript(config, markets: List, startup_candles: int = 0):
                                             startup_candles, min_date)
 
     no_trades = False
-    filename = config.get('exportfilename')
-    if config.get('no_trades', False):
+    filename = config.get("exportfilename")
+    if config.get("no_trades", False):
         no_trades = True
     elif config['trade_source'] == 'file':
         if not filename.is_dir() and not filename.is_file():
@@ -161,7 +161,7 @@ def add_max_drawdown(fig, row, trades: pd.DataFrame, df_comb: pd.DataFrame,
     Add scatter points indicating max drawdown
     """
     try:
-        max_drawdown, highdate, lowdate, _, _ = calculate_max_drawdown(trades)
+        _, highdate, lowdate, _, _, max_drawdown = calculate_max_drawdown(trades)
 
         drawdown = go.Scatter(
             x=[highdate, lowdate],
@@ -235,10 +235,12 @@ def plot_trades(fig, trades: pd.DataFrame) -> make_subplots:
     # Trades can be empty
     if trades is not None and len(trades) > 0:
         # Create description for sell summarizing the trade
-        trades['desc'] = trades.apply(lambda row: f"{row['profit_ratio']:.2%}, "
-                                                  f"{row['sell_reason']}, "
-                                                  f"{row['trade_duration']} min",
-                                      axis=1)
+        trades['desc'] = trades.apply(
+            lambda row: f"{row['profit_ratio']:.2%}, " +
+            (f"{row['enter_tag']}, " if row['enter_tag'] is not None else "") +
+            f"{row['sell_reason']}, " +
+            f"{row['trade_duration']} min",
+            axis=1)
         trade_buys = go.Scatter(
             x=trades["open_date"],
             y=trades["open_rate"],
@@ -429,8 +431,8 @@ def generate_candlestick_graph(pair: str, data: pd.DataFrame, trades: pd.DataFra
     )
     fig.add_trace(candles, 1, 1)
 
-    if 'buy' in data.columns:
-        df_buy = data[data['buy'] == 1]
+    if 'enter_long' in data.columns:
+        df_buy = data[data['enter_long'] == 1]
         if len(df_buy) > 0:
             buys = go.Scatter(
                 x=df_buy.date,
@@ -448,8 +450,8 @@ def generate_candlestick_graph(pair: str, data: pd.DataFrame, trades: pd.DataFra
         else:
             logger.warning("No buy-signals found.")
 
-    if 'sell' in data.columns:
-        df_sell = data[data['sell'] == 1]
+    if 'exit_long' in data.columns:
+        df_sell = data[data['exit_long'] == 1]
         if len(df_sell) > 0:
             sells = go.Scatter(
                 x=df_sell.date,
@@ -534,7 +536,7 @@ def generate_profit_graph(pairs: str, data: Dict[str, pd.DataFrame],
                             "Profit per pair",
                             "Parallelism",
                             "Underwater",
-                            ])
+                        ])
     fig['layout'].update(title="Freqtrade Profit plot")
     fig['layout']['yaxis1'].update(title='Price')
     fig['layout']['yaxis2'].update(title=f'Profit {stake_currency}')

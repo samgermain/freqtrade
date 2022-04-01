@@ -76,6 +76,7 @@ class Hyperopt:
         self.config = config
 
         self.backtesting = Backtesting(self.config)
+        self.pairlist = self.backtesting.pairlists.whitelist
 
         if not self.config.get('hyperopt'):
             self.custom_hyperopt = HyperOptAuto(self.config)
@@ -114,9 +115,7 @@ class Hyperopt:
 
         if HyperoptTools.has_space(self.config, 'sell'):
             # Make sure use_sell_signal is enabled
-            if 'ask_strategy' not in self.config:
-                self.config['ask_strategy'] = {}
-            self.config['ask_strategy']['use_sell_signal'] = True
+            self.config['use_sell_signal'] = True
 
         self.print_all = self.config.get('print_all', False)
         self.hyperopt_table_header = 0
@@ -332,7 +331,7 @@ class Hyperopt:
         params_details = self._get_params_details(params_dict)
 
         strat_stats = generate_strategy_stats(
-            processed, self.backtesting.strategy.get_strategy_name(),
+            self.pairlist, self.backtesting.strategy.get_strategy_name(),
             backtesting_results, min_date, max_date, market_change=0
         )
         results_explanation = HyperoptTools.format_results_explanation_string(
@@ -366,7 +365,7 @@ class Hyperopt:
         }
 
     def get_optimizer(self, dimensions: List[Dimension], cpu_count) -> Optimizer:
-        estimator = self.custom_hyperopt.generate_estimator()
+        estimator = self.custom_hyperopt.generate_estimator(dimensions=dimensions)
 
         acq_optimizer = "sampling"
         if isinstance(estimator, str):
@@ -395,6 +394,7 @@ class Hyperopt:
 
     def prepare_hyperopt_data(self) -> None:
         data, timerange = self.backtesting.load_bt_data()
+        self.backtesting.load_bt_data_detail()
         logger.info("Dataload complete. Calculating indicators")
 
         preprocessed = self.backtesting.strategy.advise_all_indicators(data)
