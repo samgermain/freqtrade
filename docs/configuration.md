@@ -499,6 +499,10 @@ This is most of the time the default time in force. It means the order will rema
 on exchange till it is cancelled by the user. It can be fully or partially fulfilled.
 If partially fulfilled, the remaining will stay on the exchange till cancelled.
 
+**PO (Post Only):**
+
+Similar to GTC, but the order is either placed as a maker order, or it is cancelled if it can't be placed as a maker order
+
 **FOK (Fill Or Kill):**
 
 It means if the order is not executed immediately AND fully then it is cancelled by the exchange.
@@ -512,7 +516,7 @@ The `order_time_in_force` parameter contains a dict with buy and sell time in fo
 This can be set in the configuration file or in the strategy.
 Values set in the configuration file overwrites values set in the strategy.
 
-The possible values are: `gtc` (default), `fok` or `ioc`.
+The possible values are: `gtc` (default), `po`, `fok`, `ioc`
 
 ``` python
 "order_time_in_force": {

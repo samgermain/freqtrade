@@ -23,7 +23,7 @@ REQUIRED_ORDERTIF = ['entry', 'exit']
 REQUIRED_ORDERTYPES = ['entry', 'exit', 'stoploss', 'stoploss_on_exchange']
 PRICING_SIDES = ['ask', 'bid', 'same', 'other']
 ORDERTYPE_POSSIBILITIES = ['limit', 'market']
-ORDERTIF_POSSIBILITIES = ['gtc', 'fok', 'ioc']
+ORDERTIF_POSSIBILITIES = ['gtc', 'fok', 'ioc', 'po']
 HYPEROPT_LOSS_BUILTIN = ['ShortTradeDurHyperOptLoss', 'OnlyProfitHyperOptLoss',
                          'SharpeHyperOptLoss', 'SharpeHyperOptLossDaily',
                          'SortinoHyperOptLoss', 'SortinoHyperOptLossDaily',

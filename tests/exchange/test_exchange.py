@@ -221,7 +221,7 @@ def test_validate_order_time_in_force(default_conf, mocker, caplog):
         ex.validate_order_time_in_force(tif2)
 
     # Patch to see if this will pass if the values are in the ft dict
-    ex._ft_has.update({"order_time_in_force": ["gtc", "fok", "ioc"]})
+    ex._ft_has.update({"order_time_in_force": ["gtc", "fok", "ioc", "po"]})
     ex.validate_order_time_in_force(tif2)
 
 
@@ -3198,7 +3198,7 @@ def test_merge_ft_has_dict(default_conf, mocker):
     ex = Binance(default_conf)
     assert ex._ft_has != Exchange._ft_has_default
     assert ex._ft_has['stoploss_on_exchange']
-    assert ex._ft_has['order_time_in_force'] == ['gtc', 'fok', 'ioc']
+    assert ex._ft_has['order_time_in_force'] == ['gtc', 'fok', 'ioc', 'po']
     assert ex._ft_has['trades_pagination'] == 'id'
     assert ex._ft_has['trades_pagination_arg'] == 'fromId'
 
