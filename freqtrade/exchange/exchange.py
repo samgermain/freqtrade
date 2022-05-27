@@ -2132,9 +2132,9 @@ class Exchange:
             raise OperationalException(e) from e
 
     @retrier
-    def get_market_leverage_tiers(self, symbol) -> List[Dict]:
+    async def get_market_leverage_tiers(self, symbol) -> List[Dict]:
         try:
-            return self._api.fetch_market_leverage_tiers(symbol)
+            return await self._api_async.fetch_market_leverage_tiers(symbol)
         except ccxt.DDoSProtection as e:
             raise DDosProtection(e) from e
         except (ccxt.NetworkError, ccxt.ExchangeError) as e:
@@ -2145,6 +2145,18 @@ class Exchange:
         except ccxt.BaseError as e:
             raise OperationalException(e) from e
 
+    def get_all_market_leverage_tiers(self, symbols) -> Dict[str, List[Dict]]:
+        # Be verbose here, as this delays startup by ~1 minute.
+        tiers: Dict[str, List[Dict]] = {}
+
+        async def get_market_leverage_tiers(symbol):
+            tiers[symbol] = await self.get_market_leverage_tiers(symbol)
+
+        for symbol in sorted(symbols):
+            asyncio.run(get_market_leverage_tiers(symbol))
+
+        return tiers
+
     def load_leverage_tiers(self) -> Dict[str, List[Dict]]:
         if self.trading_mode == TradingMode.FUTURES:
             if self.exchange_has('fetchLeverageTiers'):
@@ -2152,7 +2164,6 @@ class Exchange:
                 return self.get_leverage_tiers()
             elif self.exchange_has('fetchMarketLeverageTiers'):
                 # Must fetch the leverage tiers for each market separately
-                # * This is slow(~45s) on Okx, makes ~90 api calls to load all linear swap markets
                 markets = self.markets
                 symbols = []
 
@@ -2161,15 +2172,7 @@ class Exchange:
                             and market['quote'] == self._config['stake_currency']):
                         symbols.append(symbol)
 
-                tiers: Dict[str, List[Dict]] = {}
-
-                # Be verbose here, as this delays startup by ~1 minute.
-                logger.info(
-                    f"Initializing leverage_tiers for {len(symbols)} markets. "
-                    "This will take about a minute.")
-
-                for symbol in sorted(symbols):
-                    tiers[symbol] = self.get_market_leverage_tiers(symbol)
+                tiers = self.get_all_market_leverage_tiers(symbols)
 
                 logger.info(f"Done initializing {len(symbols)} markets.")
 
